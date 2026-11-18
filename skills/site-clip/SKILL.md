@@ -16,7 +16,7 @@ description: Record a web page, scroll story or WebGL / three.js scene as a smoo
 8. ship       <video> tag, bump the page's clip version constant
 ```
 
-**`$SC` is this skill's own `scripts/` folder**, not the user's project: the skill's base directory (shown when it loads) plus `/scripts`, e.g. `~/.claude/skills/site-clip/scripts` for a copied skill or `${CLAUDE_PLUGIN_ROOT}/skills/site-clip/scripts` for a plugin install. Run the commands from the user's project (that is where Playwright is looked up) and set `SC=` first.
+**`$SC` is this skill's own `scripts/` folder**, not the user's project: `SC="${CLAUDE_SKILL_DIR}/scripts"` (Claude Code fills in the skill's directory for a plugin or a copied skill alike). Run the commands from the user's project (that is where Playwright is looked up) and set `SC` first.
 
 Show the user the probe stills before the full take, and the seam picture and a few frames before shipping. A full take costs minutes; a probe costs seconds.
 
