@@ -42,13 +42,16 @@ for (const sw of S.swaps || []) if (sw.file) {
 }
 
 async function loadPlaywright() {
-  if (process.env.PLAYWRIGHT) return import(pathToFileURL(path.resolve(process.env.PLAYWRIGHT)).href);
-  const fromCwd = createRequire(path.join(process.cwd(), "noop.js"));
-  for (const m of ["playwright-core", "playwright"]) {
-    try { return await import(pathToFileURL(fromCwd.resolve(m)).href); } catch {}
-    try { return await import(m); } catch {}
+  // Order: PLAYWRIGHT=<file> if set, then a copy installed beside this skill, then the project you run it from
+  // (the usual `npm i -D playwright-core`). The file actually loaded is printed, so a surprise is visible.
+  const tries = [];
+  if (process.env.PLAYWRIGHT) tries.push(path.resolve(process.env.PLAYWRIGHT));
+  for (const req of [createRequire(import.meta.url), createRequire(path.join(process.cwd(), "noop.js"))])
+    for (const m of ["playwright-core", "playwright"]) { try { tries.push(req.resolve(m)); } catch {} }
+  for (const f of tries) {
+    try { const pw = await import(pathToFileURL(f).href); console.error(`playwright: ${f}`); return pw; } catch {}
   }
-  console.error("Playwright not found: npm i -D playwright-core in this folder (or set PLAYWRIGHT=<path to its index.mjs>)"); process.exit(2);
+  return null;
 }
 function findChrome() {
   if (process.env.CHROME) return process.env.CHROME;
@@ -58,7 +61,9 @@ function findChrome() {
   return c.find((p) => fs.existsSync(p));   /* undefined: Playwright's own Chromium */
 }
 
-const { chromium } = await loadPlaywright();
+const PW = await loadPlaywright();
+if (!PW) { console.error("Playwright not found: npm i -D playwright-core in your project (or set PLAYWRIGHT=<path to its index.mjs>)"); process.exit(2); }
+const { chromium } = PW;
 const W = S.viewport?.[0] ?? 1280, H = S.viewport?.[1] ?? 800, DPR = S.dpr ?? 1;
 const SUB = S.sub ?? 60, STEP = 1000 / SUB;
 const SECONDS = S.seconds ?? 6, KEEP_FROM = S.keepFrom ?? 0;

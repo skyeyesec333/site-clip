@@ -35,13 +35,24 @@ try { sh("zbarimg", ["--version"]); zbar = true;
   for (const [i, f] of frames.entries()) { try { for (const line of sh("zbarimg", ["-q", f]).split("\n").filter(Boolean)) note(line.replace(/^[^:]+:/, ""), `zbar@${times[i].toFixed(2)}s`); } catch {} }
 } catch { console.log("(zbarimg not installed: Chrome's detector only)"); }
 
+async function loadPlaywright() {
+  // Order: PLAYWRIGHT=<file> if set, then a copy installed beside this skill, then the project you run it from
+  // (the usual `npm i -D playwright-core`). The file actually loaded is printed, so a surprise is visible.
+  const tries = [];
+  if (process.env.PLAYWRIGHT) tries.push(path.resolve(process.env.PLAYWRIGHT));
+  for (const req of [createRequire(import.meta.url), createRequire(path.join(process.cwd(), "noop.js"))])
+    for (const m of ["playwright-core", "playwright"]) { try { tries.push(req.resolve(m)); } catch {} }
+  for (const f of tries) {
+    try { const pw = await import(pathToFileURL(f).href); console.error(`playwright: ${f}`); return pw; } catch {}
+  }
+  return null;
+}
+
 /* Chrome's BarcodeDetector */
 let chrome = "skipped";
 try {
-  const fromCwd = createRequire(path.join(process.cwd(), "noop.js"));
-  const tryImport = async (m) => { try { return await import(pathToFileURL(fromCwd.resolve(m)).href); } catch { return import(m); } };
-  const pw = process.env.PLAYWRIGHT ? await import(pathToFileURL(path.resolve(process.env.PLAYWRIGHT)).href)
-    : await tryImport("playwright-core").catch(() => tryImport("playwright"));
+  const pw = await loadPlaywright();
+  if (!pw) throw new Error("Playwright not found: npm i -D playwright-core in your project, or set PLAYWRIGHT=<path to its index.mjs>");
   const exe = process.env.CHROME || ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome"].find((p) => fs.existsSync(p));
   const b = await pw.chromium.launch({ executablePath: exe, headless: true });
   const page = await b.newPage();
