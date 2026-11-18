@@ -1,0 +1,8 @@
+{
+  "url": "https://example.com/",
+  "viewport": [1280, 800],
+  "sub": 60,
+  "seconds": 8,
+  "settle": 9000,
+  "pointer": { "circle": { "selector": ".hero", "radius": 0.27, "period": 6.3, "clockwise": true } }
+}

@@ -1,0 +1,10 @@
+{
+  "url": "https://example.com/",
+  "viewport": [1280, 800],
+  "sub": 60,
+  "seconds": 9.2,
+  "keepFrom": 1.5,
+  "settle": 5000,
+  "scroll": { "from": 0, "to": 5200, "start": 0.8, "seconds": 11, "preload": "walk" },
+  "hide": [".cookie-banner"]
+}
