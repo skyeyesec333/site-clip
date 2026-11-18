@@ -5,6 +5,9 @@
 set -euo pipefail
 D=${1:?usage: blend.sh <frames dir> [sub, default 120]}; SUB=${2:-120}
 [[ -f $D/s-00000.jpg ]] || { echo "no $D/s-00000.jpg"; exit 1; }
+shopt -s nullglob
+old=("$D"/b-[0-9][0-9][0-9][0-9][0-9].jpg)
+(( ${#old[@]} )) && rm -f -- "${old[@]}"   # this script's own outputs from an earlier run: a shorter re-take must not keep them
 K=$(( SUB / 60 ))
 (( K * 60 == SUB )) || { echo "sub must be a multiple of 60"; exit 1; }
 if (( K == 1 )); then
@@ -13,4 +16,5 @@ else
   ffmpeg -v error -y -framerate "$SUB" -i "$D/s-%05d.jpg" \
     -vf "tmix=frames=$K,select='eq(mod(n\,$K)\,$((K-1)))',setpts=N/60/TB" -fps_mode passthrough -q:v 2 -start_number 0 "$D/b-%05d.jpg"
 fi
-echo "$D: $(ls "$D" | grep -c '^s-') sub-frames -> $(ls "$D" | grep -c '^b-') frames at 60 fps"
+subs=("$D"/s-[0-9][0-9][0-9][0-9][0-9].jpg); outs=("$D"/b-[0-9][0-9][0-9][0-9][0-9].jpg)
+echo "$D: ${#subs[@]} sub-frames -> ${#outs[@]} frames at 60 fps"

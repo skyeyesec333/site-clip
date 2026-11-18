@@ -20,11 +20,15 @@ The live site stays as it is. Only the filming browser sees the stand-ins:
 | what | how | shot-file key |
 |---|---|---|
 | an image, SVG or file the page fetches (a QR code, a card face, an avatar) | intercept the request and answer with a stand-in | `swaps: [{ "match": "**/qr.svg", "file": "stand-in.svg", "type": "image/svg+xml" }]` |
-| text in the page | rewrite text nodes as they appear | `domText: [["me@private\\.example", "hello@example.com"]]` |
+| text in the page | rewrite text nodes as they appear or change, and the `title`, `alt`, `placeholder`, `value` and `aria-label` attributes | `domText: [["me@private\\.example", "hello@example.com"]]` |
 | text drawn into a canvas (labels on a 3D card, a strap, runtime textures) | wrap `fillText` / `strokeText` / `measureText` | `canvasText: [["PRIVATE\\.COM", "EXAMPLE.COM"]]` |
 | a whole element | hide it | `hide: ["#contact-card"]`, or `onlyCanvas: true` for a 3D scene alone |
 
-`match` is a Playwright URL glob (`**/qr.svg`, `**/card-front.png*`) or a `/regex/`. Patterns are case-insensitive regexes for the text swaps. The recorder prints which swaps fired; "NOTHING" means a pattern missed and the real thing is in the take.
+`match` is a Playwright URL glob (`**/qr.svg`, `**/card-front.png*`) or a `/regex/`. Patterns are case-insensitive regexes for the text swaps. The recorder prints which swaps fired and exits 1 if any never fired: a pattern missed and the real thing may be in the take. Mark a swap `"optional": true` only if the page may legitimately not fetch it.
+
+**What `domText` does not reach:** text inside Shadow DOM (web components), text drawn into a canvas or WebGL texture (use `canvasText`, which catches `fillText` / `strokeText` but not text baked into an image: swap the image), text in images and video, and anything in a cross-origin iframe. Hide those instead, and always look at the probe stills.
+
+**Stand-in files** must sit in the shot file's folder (or below it); the recorder refuses a `file` outside it, so a shot file from someone else cannot make the browser serve your other files to a web page.
 
 **A stand-in QR code:** `python3 scripts/makeqr.py "https://your-public-site" stand-in.svg` writes a valid code that reads your public URL (29x29, up to 42 bytes). To swap a code that is baked into a larger image (a card face), make a copy of that image with the stand-in pasted over the code, at the same size, and swap the whole image.
 
@@ -39,7 +43,7 @@ node scripts/check.mjs out/clip.mp4 "https://your-public-site"
 node scripts/check.mjs out/clip.sm.mp4 "https://your-public-site"
 ```
 
-It scans 8 frames spread through the clip with Chrome's `BarcodeDetector` (needs a secure page: the script serves the frames from a routed `https://` origin; available on macOS and ChromeOS) and with `zbarimg` when installed (`brew install zbar`, `apt install zbar-tools`), prints every code it reads, and exits 1 if any reads something other than the expected text. Also look at the poster (`.sm.webp`) by eye.
+It scans 8 frames spread through the clip with Chrome's `BarcodeDetector` (needs a secure page: the script serves the frames from a routed `https://` origin; available on macOS and ChromeOS) and with `zbarimg` when installed (`brew install zbar`, `apt install zbar-tools`), prints every code it reads, and exits 1 if any reads something other than the expected text. If neither scanner can run it exits 3 rather than report a clean clip it never checked (`--allow-no-scanner` overrides that; don't, for a clip that will be published). Also look at the poster (`.sm.webp`) by eye.
 
 A code too small or blurred to scan is fine; a code that scans to the wrong place is not.
 

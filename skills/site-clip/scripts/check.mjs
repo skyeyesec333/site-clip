@@ -1,6 +1,9 @@
 // check.mjs: look at what you are about to publish, from the ENCODED file (not the frames you fed in).
 //
-//   node check.mjs <clip.mp4> [expect]
+//   node check.mjs <clip.mp4> [expect] [--allow-no-scanner]
+//
+// It exits 3 if neither scanner could run (no BarcodeDetector in this Chrome and no zbarimg): "no codes found" would then
+// mean nothing. Pass --allow-no-scanner only to get the seam picture anyway.
 //
 // 1. Scans 8 frames spread through the clip for QR codes and barcodes and prints what each one says. If `expect` is given
 //    (e.g. "https://example.com"), anything readable that is not it is an error: a real code made it into the clip.
@@ -11,8 +14,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 
-const [clip, expect] = process.argv.slice(2);
+const argv = process.argv.slice(2), ALLOW_NONE = argv.includes("--allow-no-scanner");
+const [clip, expect] = argv.filter((a) => a !== "--allow-no-scanner");
 if (!clip) { console.error("usage: node check.mjs <clip.mp4> [expected QR text]"); process.exit(2); }
 const sh = (cmd, args) => execFileSync(cmd, args, { encoding: "utf8" }).trim();
 const dur = +sh("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", clip]);
@@ -24,14 +30,18 @@ const found = new Map();   /* text -> frames */
 const note = (text, where) => { if (!found.has(text)) found.set(text, []); found.get(text).push(where); };
 
 /* zbar, if present */
-try { sh("zbarimg", ["--version"]);
+let zbar = false;
+try { sh("zbarimg", ["--version"]); zbar = true;
   for (const [i, f] of frames.entries()) { try { for (const line of sh("zbarimg", ["-q", f]).split("\n").filter(Boolean)) note(line.replace(/^[^:]+:/, ""), `zbar@${times[i].toFixed(2)}s`); } catch {} }
 } catch { console.log("(zbarimg not installed: Chrome's detector only)"); }
 
 /* Chrome's BarcodeDetector */
 let chrome = "skipped";
 try {
-  const pw = process.env.PLAYWRIGHT ? await import(process.env.PLAYWRIGHT) : await import("playwright-core").catch(() => import("playwright"));
+  const fromCwd = createRequire(path.join(process.cwd(), "noop.js"));
+  const tryImport = async (m) => { try { return await import(pathToFileURL(fromCwd.resolve(m)).href); } catch { return import(m); } };
+  const pw = process.env.PLAYWRIGHT ? await import(pathToFileURL(path.resolve(process.env.PLAYWRIGHT)).href)
+    : await tryImport("playwright-core").catch(() => tryImport("playwright"));
   const exe = process.env.CHROME || ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome"].find((p) => fs.existsSync(p));
   const b = await pw.chromium.launch({ executablePath: exe, headless: true });
   const page = await b.newPage();
@@ -67,4 +77,8 @@ sh("ffmpeg", ["-v", "error", "-y", "-i", clip, "-frames:v", "1", first]);
 sh("ffmpeg", ["-v", "error", "-y", "-i", last, "-i", first, "-filter_complex", "hstack=inputs=2,scale=1600:-2", seam]);
 console.log(`seam (last | first): ${seam}`);
 fs.rmSync(tmp, { recursive: true, force: true });
+if (!zbar && chrome !== "ok") {
+  console.error("NO SCANNER RAN: Chrome's BarcodeDetector was unavailable and zbarimg is not installed, so this clip was NOT checked for codes. Install zbar (brew install zbar / apt install zbar-tools).");
+  if (!ALLOW_NONE) process.exit(3);
+}
 process.exit(bad ? 1 : 0);

@@ -8,13 +8,15 @@ description: Record a web page, scroll story or WebGL / three.js scene as a smoo
 ```
 1. plan       what moves, which window of it, where the loop joins
 2. privacy    anything readable that must not ship? swap it in the browser (references/privacy.md)
-3. probe      PROBE=1 node scripts/record.mjs shot.json probe      one still a second: framing and timing
-4. record     node scripts/record.mjs shot.json frames             sub-frames on a held clock
-5. blend      scripts/blend.sh frames 120                          sub-frames → 60 fps with motion blur
-6. loop       scripts/loop-encode.sh frames out/name <start> <end> loop, crop, mp4 + webm + poster
-7. check      node scripts/check.mjs out/name.mp4 [expected QR]    scan the ENCODED file, look at the seam
+3. probe      PROBE=1 node $SC/record.mjs shot.json probe      one still a second: framing and timing
+4. record     node $SC/record.mjs shot.json frames             sub-frames on a held clock
+5. blend      $SC/blend.sh frames 120                          sub-frames → 60 fps with motion blur
+6. loop       $SC/loop-encode.sh frames out/name <start> <end> loop, crop, mp4 + webm + poster
+7. check      node $SC/check.mjs out/name.mp4 [expected QR]    scan the ENCODED file, look at the seam
 8. ship       <video> tag, bump the page's clip version constant
 ```
+
+**`$SC` is this skill's own `scripts/` folder**, not the user's project: the skill's base directory (shown when it loads) plus `/scripts`, e.g. `~/.claude/skills/site-clip/scripts` for a copied skill or `${CLAUDE_PLUGIN_ROOT}/skills/site-clip/scripts` for a plugin install. Run the commands from the user's project (that is where Playwright is looked up) and set `SC=` first.
 
 Show the user the probe stills before the full take, and the seam picture and a few frames before shipping. A full take costs minutes; a probe costs seconds.
 
@@ -32,15 +34,15 @@ A screen recorder captures whatever the machine manages: dropped frames, stutter
 
 Before any take, look at a probe still and list what is readable: QR codes, email addresses, phone numbers, street addresses, real names, API keys in a dev panel, a watermark. Each one is swapped **in the filming browser only**, never on the live site:
 
-- an image or SVG (a QR code, a card face) → `swaps` replaces the network response with a stand-in file (`scripts/makeqr.py` writes a valid stand-in QR that reads your public URL);
+- an image or SVG (a QR code, a card face) → `swaps` replaces the network response with a stand-in file (`$SC/makeqr.py` writes a valid stand-in QR that reads your public URL);
 - text in the page → `domText`; text drawn into a canvas (labels on 3D objects, textures made at runtime) → `canvasText`;
 - whole elements → `hide` (CSS selectors) or `onlyCanvas: true`.
 
-The recorder prints which swaps actually fired ("NOTHING" means your pattern missed). Then **check the encoded file**, not the source frames: `scripts/check.mjs` scans frames of the .mp4 for QR codes and exits non-zero if one reads anything but the code you expect. Full method: [references/privacy.md](references/privacy.md).
+The recorder prints which swaps fired and **exits 1 if one never did** (the real file may be in the take). Then **check the encoded file**, not the source frames: `$SC/check.mjs` scans frames of the .mp4 for QR codes and exits non-zero if one reads anything but the code you expect, or **3 if no scanner could run** (no `BarcodeDetector` in this Chrome and no `zbarimg`: install zbar rather than pass `--allow-no-scanner`). Full method: [references/privacy.md](references/privacy.md).
 
 ## 3-4. Record
 
-Write a shot file (examples in `examples/`):
+Write a shot file (examples in this skill's `examples/` folder):
 
 ```json
 {
@@ -68,21 +70,26 @@ Write a shot file (examples in `examples/`):
 | `profile` | a Chrome profile folder reused between runs (sign-ins, consent banners dismissed once). One per site |
 | `clip` | screenshot region `[x, y, w, h]` (a part of the page only) |
 | `chromeArgs`, `css`, `quality` | extra flags, extra CSS, JPEG quality (92) |
+| `hide`, `onlyCanvas` | CSS selectors to hide; `onlyCanvas: true` hides everything but `<canvas>` elements (a 3D scene alone) |
+| `swaps` | `[{match, file \| body, type, optional}]`: answer matching requests with a stand-in. `file` must be inside the shot file's folder. The take exits 1 if a swap never fired unless it is `optional: true` |
+| `domText`, `canvasText` | `[[regex, replacement]]`: rewrite page text (text nodes, `title` / `alt` / `placeholder` / `value` / `aria-label`) or text drawn into canvases |
 
-Run `PROBE=1` first (one still a second, quick); adjust; then the full take. `PLAYWRIGHT=` and `CHROME=` point at Playwright and a real Chrome if they are not found by themselves.
+Run `PROBE=1` first (one still a second, quick; `EVERY=0.5` for two a second); adjust; then the full take into a **new, empty folder** (the recorder refuses one that holds frames from another take; `--overwrite` replaces them).
+
+**A shot file is trusted code:** `waitFor`, `css` and `chromeArgs` run as given and `swaps` serve local files to the page. Only run shot files you wrote or have read. `PLAYWRIGHT=` and `CHROME=` point at Playwright and a real Chrome if they are not found by themselves.
 
 ## 5-6. Blend, loop, encode
 
 ```sh
-scripts/blend.sh frames 120                                  # s-*.jpg → b-*.jpg at 60 fps
-LOOK=ui SM=1 scripts/loop-encode.sh frames out/hero 0.6 7.5  # the loop from 0.6 s to 7.5 s
+$SC/blend.sh frames 120                                  # s-*.jpg → b-*.jpg at 60 fps
+LOOK=ui SM=1 $SC/loop-encode.sh frames out/hero 0.6 7.5  # the loop from 0.6 s to 7.5 s
 ```
 
 `LOOK=ui` (flat interface, type) or `LOOK=rich` (renders, photoreal, gradients) picks the quality; `ASPECT`, `WIDTH`, `X` (dissolve length), `CRF`/`AV1CRF`, `SM=1` (half-size copies for thumbnails). Sizes and settings that held up in production: [references/encoding.md](references/encoding.md).
 
 ## 7. Check
 
-`node scripts/check.mjs out/hero.mp4 https://your-public-url` then open `out/hero.seam.png` (last frame | first frame: they should look like neighbours) and step through a few frames. Look at the clip at 1:1, not only as a thumbnail.
+`node $SC/check.mjs out/hero.mp4 https://your-public-url` then open `out/hero.seam.png` (last frame | first frame: they should look like neighbours) and step through a few frames. Look at the clip at 1:1, not only as a thumbnail.
 
 ## 8. Ship
 

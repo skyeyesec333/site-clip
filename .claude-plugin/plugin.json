@@ -1,11 +1,22 @@
 {
   "name": "site-clip",
   "displayName": "Site clip",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Record a web page or WebGL scene as a smooth, seamlessly looping video: headless Chrome on a held clock, motion blur, a dissolve loop, H.264 + AV1 + WebP poster, and private details swapped out before filming.",
-  "author": { "name": "skyeyesec333" },
+  "author": {
+    "name": "skyeyesec333"
+  },
   "license": "MIT",
   "repository": "https://github.com/skyeyesec333/site-clip",
   "homepage": "https://github.com/skyeyesec333/site-clip",
-  "keywords": ["video", "screen-recording", "playwright", "ffmpeg", "webgl", "threejs", "portfolio", "loop"]
+  "keywords": [
+    "video",
+    "screen-recording",
+    "playwright",
+    "ffmpeg",
+    "webgl",
+    "threejs",
+    "portfolio",
+    "loop"
+  ]
 }

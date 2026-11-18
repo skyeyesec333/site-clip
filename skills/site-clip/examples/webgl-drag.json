@@ -1,23 +1,69 @@
 {
+  "_template": "A template: put your own stand-in files in a stand-ins/ folder beside this shot file (python3 makeqr.py writes a stand-in QR), set url and the pointer keys, then run it.",
   "url": "https://example.com/card/",
-  "viewport": [1600, 1000],
+  "viewport": [
+    1600,
+    1000
+  ],
   "sub": 120,
   "seconds": 6.5,
   "keepFrom": 0.4,
   "waitFor": "document.querySelector('canvas')",
   "settle": 8000,
   "onlyCanvas": true,
-  "clip": [600, 0, 1000, 1000],
-  "swaps": [
-    { "match": "**/card-front.png*", "file": "stand-ins/card-front.png", "type": "image/png" },
-    { "match": "**/qr.svg*", "file": "stand-ins/qr.svg", "type": "image/svg+xml" }
+  "clip": [
+    600,
+    0,
+    1000,
+    1000
   ],
-  "canvasText": [["PRIVATE-SITE\\.COM", "EXAMPLE.COM"]],
-  "pointer": { "keys": [
-    { "t": 0.0, "x": 1170, "y": 620 },
-    { "t": 1.0, "x": 1170, "y": 620, "down": true },
-    { "t": 1.2, "x": 1010, "y": 660, "down": true },
-    { "t": 1.35, "x": 1374, "y": 562 },
-    { "t": 1.6, "x": 1170, "y": 620 }
-  ] }
+  "swaps": [
+    {
+      "match": "**/card-front.png*",
+      "file": "stand-ins/card-front.png",
+      "type": "image/png"
+    },
+    {
+      "match": "**/qr.svg*",
+      "file": "stand-ins/qr.svg",
+      "type": "image/svg+xml"
+    }
+  ],
+  "canvasText": [
+    [
+      "PRIVATE-SITE\\.COM",
+      "EXAMPLE.COM"
+    ]
+  ],
+  "pointer": {
+    "keys": [
+      {
+        "t": 0.0,
+        "x": 1170,
+        "y": 620
+      },
+      {
+        "t": 1.0,
+        "x": 1170,
+        "y": 620,
+        "down": true
+      },
+      {
+        "t": 1.2,
+        "x": 1010,
+        "y": 660,
+        "down": true
+      },
+      {
+        "t": 1.35,
+        "x": 1374,
+        "y": 562
+      },
+      {
+        "t": 1.6,
+        "x": 1170,
+        "y": 620
+      }
+    ]
+  }
 }

@@ -22,10 +22,12 @@ src=${1:?usage: loop-encode.sh <frames dir> <out base> [start s] [end s]}; out=$
 X=${X:-0.6}; ASPECT=${ASPECT:-16:10}; WIDTH=${WIDTH:-1280}; LOOK=${LOOK:-ui}
 if [[ $LOOK == rich ]]; then CRF=${CRF:-20}; AV1CRF=${AV1CRF:-33}; PQ=82; else CRF=${CRF:-27}; AV1CRF=${AV1CRF:-50}; PQ=62; fi
 if [[ -z ${PATTERN:-} ]]; then
-  for p in b-%05d.jpg s-%05d.jpg %05d.jpg f-%05d.jpg; do [[ -f $src/$(printf "$p" 0) ]] && { PATTERN=$p; break; }; done
+  for p in b-%05d.jpg s-%05d.jpg %05d.jpg f-%05d.jpg; do [[ -f $src/${p/\%05d/00000} ]] && { PATTERN=$p; break; }; done
 fi
 [[ -n ${PATTERN:-} ]] || { echo "no frames found in $src"; exit 1; }
-n=$(ls "$src" | grep -c "^$(printf "$PATTERN" 0 | sed 's/00000.*//')[0-9]\{5\}\.")
+# count by decoding the sequence itself, so any PATTERN works (%04d, f-%05d.png ...)
+n=$(ffprobe -v error -f image2 -framerate 60 -i "$src/$PATTERN" -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 2>/dev/null || true)
+[[ $n =~ ^[0-9]+$ && $n -gt 0 ]] || { echo "no frames matching $PATTERN in $src (it must start at 0, numbered without gaps)"; exit 1; }
 full=$(printf "%.4f" "$(echo "scale=4; $n / 60" | bc)")
 a=${3:-0}; b=${4:-$full}
 L=$(printf "%.4f" "$(echo "$b - $a" | bc)"); off=$(printf "%.4f" "$(echo "$L - 2*$X" | bc)")
@@ -53,12 +55,12 @@ ffmpeg -v error -y -framerate 60 -i "$src/$PATTERN" -filter_complex "$LOOP,scale
   || echo "(no AV1 encoder in this ffmpeg: $out.webm skipped; the .mp4 alone plays everywhere)"
 
 # poster: the loop's first frame. ffmpeg's own WebP encoder if it has one, else cwebp
-P=$(mktemp -t posterXXXXXX).png
+PD=$(mktemp -d); P=$PD/poster.png
 ffmpeg -v error -y -i "$out.mp4" -frames:v 1 -vf "scale=$((WIDTH*3/4)):-2:flags=lanczos" "$P"
 if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libwebp; then ffmpeg -v error -y -i "$P" -c:v libwebp -quality $PQ "$out.sm.webp"
 elif command -v cwebp >/dev/null; then cwebp -quiet -q $PQ "$P" -o "$out.sm.webp"
 else echo "(no WebP encoder: install cwebp; poster left as PNG)"; cp "$P" "$out.sm.png"; fi
-rm -f "$P"
+rm -f -- "$P"; rmdir -- "$PD"
 
 for f in "$out".*; do printf "%-40s %8s KB\n" "$(basename "$f")" $(( $(wc -c < "$f") / 1024 )); done
 ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=codec_name,width,height,nb_read_frames -show_entries format=duration -of compact "$out.mp4"

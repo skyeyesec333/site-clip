@@ -1,8 +1,22 @@
 {
   "name": "site-clip",
   "description": "Web page or WebGL scene to a seamless looping video.",
-  "owner": { "name": "skyeyesec333" },
+  "owner": {
+    "name": "skyeyesec333"
+  },
   "plugins": [
-    { "name": "site-clip", "source": "./", "description": "Skill: site-clip. Frame-perfect recording on a held clock, motion blur, loop and encode, privacy swaps and a QR check.", "category": "development", "tags": ["video", "playwright", "ffmpeg", "webgl"] }
+    {
+      "name": "site-clip",
+      "source": "./",
+      "description": "Skill: site-clip. Frame-perfect recording on a held clock, motion blur, loop and encode, privacy swaps and a QR check.",
+      "category": "development",
+      "tags": [
+        "video",
+        "playwright",
+        "ffmpeg",
+        "webgl"
+      ],
+      "version": "0.1.1"
+    }
   ]
 }

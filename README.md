@@ -46,12 +46,14 @@ or call it directly: `/site-clip the three.js scene on localhost:5173, pointer c
 You can also run the scripts yourself:
 
 ```sh
-cd skills/site-clip
-PROBE=1 node scripts/record.mjs examples/pointer-hero.json probe     # quick stills to check framing
-node scripts/record.mjs examples/pointer-hero.json frames
-scripts/blend.sh frames 60
-SM=1 scripts/loop-encode.sh frames out/hero 0.6 7.5
-node scripts/check.mjs out/hero.mp4 https://example.com
+# from your project (where playwright-core is installed); SC is the skill's scripts folder
+SC=~/.claude/skills/site-clip/scripts
+cp ~/.claude/skills/site-clip/examples/pointer-hero.json shot.json   # then edit url, selector, timing
+PROBE=1 node $SC/record.mjs shot.json probe     # quick stills to check framing
+node $SC/record.mjs shot.json frames             # a new, empty folder each take
+$SC/blend.sh frames 60
+SM=1 $SC/loop-encode.sh frames out/hero 0.6 7.5
+node $SC/check.mjs out/hero.mp4 https://example.com
 ```
 
 ## Requirements
@@ -59,8 +61,9 @@ node scripts/check.mjs out/hero.mp4 https://example.com
 - [Claude Code](https://claude.com/claude-code)
 - Node 18+ and Playwright (`npm i -D playwright-core`, or point `PLAYWRIGHT=` at an existing install)
 - Google Chrome (recommended for WebGL on the GPU; point `CHROME=` at it if it is not in the usual place)
-- ffmpeg with libx264 (libsvtav1 for the AV1 copy)
-- Optional: `cwebp` if your ffmpeg lacks libwebp; `zbarimg` for a second QR scanner; Python 3 for the stand-in QR maker
+- ffmpeg 5.1 or newer with libx264 (libsvtav1 for the AV1 copy), and `bc`
+- A QR scanner for the check: Chrome's built-in one on macOS, or `zbarimg` (`brew install zbar`, `apt install zbar-tools`) on Linux
+- Optional: `cwebp` if your ffmpeg lacks libwebp; Python 3 for the stand-in QR maker
 
 ## Licence
 

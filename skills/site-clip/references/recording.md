@@ -1,5 +1,7 @@
 # Recording on a held clock
 
+**Shot files are trusted code.** `waitFor` is evaluated in the page, `css` is injected, `chromeArgs` go to Chrome, and `swaps` serve files from disk to whatever page is open. Write your own, or read one fully before running it. Stand-in files are confined to the shot file's folder.
+
 ## What the recorder takes over
 
 Injected before any page script runs (`addInitScript`):
